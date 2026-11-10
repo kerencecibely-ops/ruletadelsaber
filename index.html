@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0b1020">
 <meta name="description" content="Juego de estudio: gira materia, tema y tiempo, y explica lo que estudiaste.">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -749,6 +749,9 @@ function setupTimer(fromHist){
   renderClock(); renderAll(); saveRound();
 }
 async function lock(on){
+  // en la app Android (Capacitor) la pantalla se mantiene encendida con un plugin nativo
+  const KA = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.KeepAwake;
+  if(KA){ try{ on ? await KA.keepAwake() : await KA.allowSleep(); }catch(e){} return; }
   try{
     if(on && navigator.wakeLock){ if(!wakeLock || wakeLock.released) wakeLock = await navigator.wakeLock.request("screen"); }
     else if(!on && wakeLock){ const w = wakeLock; wakeLock = null; await w.release(); }
@@ -1105,6 +1108,18 @@ $("themeSheet").addEventListener("click", e=>{ if(e.target.id==="themeSheet") cl
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ if(look.mode==="auto") applyLook(true); });
 new MutationObserver(()=>{ if(look.mode==="auto") applyLook(true); }).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
 applyLook(false);
+
+/* ============ Botón atrás en Android ============ */
+(function(){
+  const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if(!App) return;
+  App.addListener("backButton", ()=>{
+    if(!$("themeSheet").hidden){ closeSheet(); return; }
+    if(!$("celebrate").hidden){ closeCel(); return; }
+    if(cur!==0){ go(0); return; }
+    App.minimizeApp ? App.minimizeApp() : App.exitApp();   // minimizar mantiene el reloj
+  });
+})();
 
 /* ============ Arranque ============ */
 (function orbit(){
